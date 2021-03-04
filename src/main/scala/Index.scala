@@ -33,7 +33,7 @@ object Index {
 
     def compare(other: Rank): Int = this.value.compare(other.value)
 
-    def toResultString(allWords: Int): FileName = s"${(value / (allWords * 1.0) * 100).round.toString}%"
+    def toResultString(base: Int): FileName = s"${(value / (base * 1.0) * 100).round.toString}%"
   }
 
   final case class ResultItem(fileName: FileName, rank: Rank) extends Ordered[ResultItem] {

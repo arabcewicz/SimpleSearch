@@ -1,17 +1,17 @@
 class QueryingTests extends TestSuite {
-  test("no results") {
+  test("when no matches then should return empty result") {
     val index = Index.createWithStrings(List(("f1", "a hat on the head"), ("f2", "a hat on the bad")))
     val queryRes = index.query("aaa bbb ccc")
     queryRes shouldBe List()
   }
 
-  test("basic test - proper ordering") {
+  test("when there are matches then should return results properly ordered") {
     val index = Index.createWithStrings(List(("f1", "a hat on the head"), ("f2", "a hat on the bad")))
     val queryRes = index.query("hat and bad")
     queryRes shouldBe List("f2 : 67%", "f1 : 33%")
   }
 
-  test("only 10 result items") {
+  test("should limit result to 10 items") {
     val index = Index.createWithStrings(
       List(
         ("f1", "aa"),

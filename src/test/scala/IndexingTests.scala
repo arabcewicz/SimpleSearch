@@ -1,5 +1,5 @@
 class IndexingTests extends TestSuite {
-  test("one file") {
+  test("indexing one 'file'") {
     Index
       .createWithStrings(
         List(
@@ -9,7 +9,7 @@ class IndexingTests extends TestSuite {
       .idx shouldBe Map("the" -> Set("f1"), "hat" -> Set("f1"), "on" -> Set("f1"), "head" -> Set("f1"))
   }
 
-  test("two files") {
+  test("indexing two 'files'") {
     Index
       .createWithStrings(
         List(
@@ -26,7 +26,7 @@ class IndexingTests extends TestSuite {
     )
   }
 
-  test("two files - multiline") {
+  test("indexing two multiline 'files'") {
     Index
       .createWithStrings(
         List(
