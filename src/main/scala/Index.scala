@@ -69,10 +69,9 @@ object Index {
   }
 
   def extractWords(line: String): Iterator[String] = {
-    "([A-Za-z0-9]+)".r
+    "([A-Za-z0-9]{2,})".r
       .findAllMatchIn(line)
       .map(g => g.group(1).toLowerCase)
-      .filter(_.length > 1)
   }
 
   def createWithStrings(input: List[(String, String)]): Index = {

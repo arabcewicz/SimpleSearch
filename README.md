@@ -20,7 +20,7 @@ Just as required in the specification ([Scala Developer Coding Exercise](https:/
   
     > What constitutes a word?
  
-    is: the `ISO-8859-1` encoded string that matches `"([A-Za-z0-9]+)"` and is at least two characters long.
+    is: the `ISO-8859-1` encoded string that matches `"([A-Za-z0-9]{2,})"` (it has to be at least two characters long).
   
 * My choice of 
     
