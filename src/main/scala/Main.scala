@@ -1,7 +1,9 @@
 import Index.extractWordsFrom
 
 import java.io.File
+import java.nio.charset.CodingErrorAction
 import scala.annotation.tailrec
+import scala.io.Codec
 import scala.util.Try
 import scala.util.chaining.scalaUtilChainingOps
 
@@ -14,6 +16,12 @@ object Main extends App {
     )
 }
 
+final case class Rank(value: Int) extends AnyVal with Ordered[Rank] {
+  def +(other: Rank): Rank = Rank(this.value + other.value)
+
+  def compare(other: Rank): Int = this.value.compare(other.value)
+}
+
 case class Index() {
   type Word = String
   type FileName = String
@@ -21,16 +29,47 @@ case class Index() {
   var idx: Map[Word, Set[FileName]] =
     Map[Word, Set[FileName]]() withDefaultValue Set.empty
 
+  case class ResultItem(fileName: FileName, rank: Rank)
+      extends Ordered[ResultItem] {
+    def +(other: ResultItem): ResultItem =
+      other.fileName match {
+        case this.fileName => ResultItem(this.fileName, this.rank + other.rank)
+        case _             => throw new IllegalStateException("") // can't happen!
+      }
+
+    def compare(other: ResultItem): Int = this.rank.compare(other.rank)
+  }
+
+  case class ResultSet(set: Set[ResultItem]) {
+    def union(other: ResultSet): ResultSet =
+      ResultSet(
+        (this.set.toSeq ++ other.set.toSeq)
+          .groupBy(_.fileName)
+          .map(g => g._2.reduce(_ + _))
+          .toSet
+      )
+
+    def toResult: List[ResultItem] =
+      set.toList
+        .sorted(Ordering[ResultItem].reverse)
+        .take(10)
+  }
+
+  object ResultSet {
+    val empty: ResultSet = ResultSet(Set.empty)
+  }
+
   def addFileLine(fileName: FileName, line: String): Unit =
     extractWordsFrom(line).foreach(w => idx = idx + (w -> (idx(w) + fileName)))
 
-  def get(word: Word): Set[FileName] = idx(word)
+  def get(word: Word): ResultSet =
+    ResultSet(idx(word).map(ResultItem(_, Rank(1))))
 
-  def query(searchString: String): List[String] =
+  def query(searchString: String): List[ResultItem] =
     extractWordsFrom(searchString)
       .map(get)
-      .foldLeft(Set.empty[String])(_ union _)
-      .toList
+      .foldLeft(ResultSet.empty)(_ union _)
+      .toResult
 }
 
 object Index {
@@ -39,8 +78,10 @@ object Index {
 
   def indexDirFiles(dir: File): Index = {
     val idx = new Index()
+    val codec = Codec.ISO8859
+    codec.onMalformedInput(CodingErrorAction.IGNORE)
     for (f <- dir.listFiles if f.isFile) {
-      val source = scala.io.Source.fromFile(f)
+      val source = scala.io.Source.fromFile(f)(codec)
       source.getLines
         .foreach(idx.addFileLine(f.getName, _))
       source.close()
