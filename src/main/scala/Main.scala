@@ -1,5 +1,3 @@
-import Index.extractWordsFrom
-
 import java.io.File
 import java.nio.charset.CodingErrorAction
 import scala.annotation.tailrec
@@ -12,25 +10,42 @@ object Main extends App {
     .checkDir(args)
     .fold(
       println,
-      Index.indexDirFiles(_).pipe(Program.iterate)
+      Index.createWithDirFiles(_).pipe(Program.iterate)
     )
-}
-
-final case class Rank(value: Int) extends AnyVal with Ordered[Rank] {
-  def +(other: Rank): Rank = Rank(this.value + other.value)
-
-  def compare(other: Rank): Int = this.value.compare(other.value)
 }
 
 case class Index() {
   type Word = String
   type FileName = String
 
-  var idx: Map[Word, Set[FileName]] =
-    Map[Word, Set[FileName]]() withDefaultValue Set.empty
+  import Index._
 
-  case class ResultItem(fileName: FileName, rank: Rank)
-      extends Ordered[ResultItem] {
+  val idx: collection.mutable.Map[Word, Set[FileName]] =
+    collection.mutable.Map[Word, Set[FileName]]() withDefaultValue Set.empty
+
+  def addFileLine(fileName: FileName, line: String): Unit =
+    extractWords(line).foreach(w => idx(w) = idx(w) + fileName)
+
+  def get(word: Word): ResultSet =
+    ResultSet(idx(word).map(ResultItem(_, Rank(1))))
+
+  def query(searchString: String): List[ResultItem] =
+    extractWords(searchString)
+      .map(get)
+      .foldLeft(ResultSet.empty)(_ union _)
+      .toResult
+}
+
+object Index {
+  type FileName = String
+
+  final case class Rank(value: Int) extends AnyVal with Ordered[Rank] {
+    def +(other: Rank): Rank = Rank(this.value + other.value)
+
+    def compare(other: Rank): Int = this.value.compare(other.value)
+  }
+
+  case class ResultItem(fileName: FileName, rank: Rank) extends Ordered[ResultItem] {
     def +(other: ResultItem): ResultItem =
       other.fileName match {
         case this.fileName => ResultItem(this.fileName, this.rank + other.rank)
@@ -59,24 +74,13 @@ case class Index() {
     val empty: ResultSet = ResultSet(Set.empty)
   }
 
-  def addFileLine(fileName: FileName, line: String): Unit =
-    extractWordsFrom(line).foreach(w => idx = idx + (w -> (idx(w) + fileName)))
-
-  def get(word: Word): ResultSet =
-    ResultSet(idx(word).map(ResultItem(_, Rank(1))))
-
-  def query(searchString: String): List[ResultItem] =
-    extractWordsFrom(searchString)
-      .map(get)
-      .foldLeft(ResultSet.empty)(_ union _)
-      .toResult
-}
-
-object Index {
-  def extractWordsFrom(line: String): Iterator[String] =
-    raw"([A-Za-z0-9]+)".r.findAllIn(line).map(_.toLowerCase)
-
-  def indexDirFiles(dir: File): Index = {
+  def extractWords(line: String): Iterator[String] = {
+    "([A-Za-z0-9]+)".r
+      .findAllMatchIn(line)
+      .map(g => g.group(1).toLowerCase)
+      .filter(_.length > 1)
+  }
+  def createWithDirFiles(dir: File): Index = {
     val idx = new Index()
     val codec = Codec.ISO8859
     codec.onMalformedInput(CodingErrorAction.IGNORE)
@@ -84,6 +88,17 @@ object Index {
       val source = scala.io.Source.fromFile(f)(codec)
       source.getLines
         .foreach(idx.addFileLine(f.getName, _))
+      source.close()
+    }
+    idx
+  }
+
+  def createWithStrings(input: List[(String, String)]): Index = {
+    val idx = new Index()
+    for ((name, content) <- input) {
+      val source = scala.io.Source.fromString(content)
+      source.getLines
+        .foreach(idx.addFileLine(name, _))
       source.close()
     }
     idx
