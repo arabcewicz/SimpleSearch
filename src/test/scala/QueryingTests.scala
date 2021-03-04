@@ -1,5 +1,3 @@
-import Index._
-
 class QueryingTests extends TestSuite {
   test("no results") {
     val index = Index.createWithStrings(List(("f1", "a hat on the head"), ("f2", "a hat on the bad")))
@@ -10,7 +8,7 @@ class QueryingTests extends TestSuite {
   test("basic test - proper ordering") {
     val index = Index.createWithStrings(List(("f1", "a hat on the head"), ("f2", "a hat on the bad")))
     val queryRes = index.query("hat and bad")
-    queryRes shouldBe List(ResultItem("f2", Rank(2)), ResultItem("f1", Rank(1)))
+    queryRes shouldBe List("f2 : 67%", "f1 : 33%")
   }
 
   test("only 10 result items") {
@@ -32,16 +30,16 @@ class QueryingTests extends TestSuite {
     )
     val queryRes = index.query("aa cc ee ff gg hh kk")
     queryRes shouldBe List(
-      ResultItem("f12", Rank(7)),
-      ResultItem("f11", Rank(7)),
-      ResultItem("f9", Rank(6)),
-      ResultItem("f10", Rank(6)),
-      ResultItem("f8", Rank(6)),
-      ResultItem("f7", Rank(5)),
-      ResultItem("f6", Rank(4)),
-      ResultItem("f5", Rank(3)),
-      ResultItem("f4", Rank(2)),
-      ResultItem("f3", Rank(2))
+      "f12 : 100%",
+      "f11 : 100%",
+      "f9 : 86%",
+      "f10 : 86%",
+      "f8 : 86%",
+      "f7 : 71%",
+      "f6 : 57%",
+      "f5 : 43%",
+      "f4 : 29%",
+      "f3 : 29%"
     )
   }
 }

@@ -29,11 +29,14 @@ case class Index() {
   def get(word: Word): ResultSet =
     ResultSet(idx(word).map(ResultItem(_, Rank(1))))
 
-  def query(searchString: String): List[ResultItem] =
-    extractWords(searchString)
+  def query(searchString: String): List[String] = {
+    val words = extractWords(searchString).toList
+    words
       .map(get)
       .foldLeft(ResultSet.empty)(_ union _)
       .toResult
+      .map(_.toResultString(words.length))
+  }
 }
 
 object Index {
@@ -43,9 +46,11 @@ object Index {
     def +(other: Rank): Rank = Rank(this.value + other.value)
 
     def compare(other: Rank): Int = this.value.compare(other.value)
+
+    def toResultString(allWords: Int): FileName = s"${(value / (allWords * 1.0) * 100).round.toString}%"
   }
 
-  case class ResultItem(fileName: FileName, rank: Rank) extends Ordered[ResultItem] {
+  final case class ResultItem(fileName: FileName, rank: Rank) extends Ordered[ResultItem] {
     def +(other: ResultItem): ResultItem =
       other.fileName match {
         case this.fileName => ResultItem(this.fileName, this.rank + other.rank)
@@ -53,6 +58,9 @@ object Index {
       }
 
     def compare(other: ResultItem): Int = this.rank.compare(other.rank)
+
+    def toResultString(base: Int): String =
+      s"$fileName : ${rank.toResultString(base)}"
   }
 
   case class ResultSet(set: Set[ResultItem]) {
@@ -84,12 +92,15 @@ object Index {
     val idx = new Index()
     val codec = Codec.ISO8859
     codec.onMalformedInput(CodingErrorAction.IGNORE)
-    for (f <- dir.listFiles if f.isFile) {
+    var counter = 0
+    for (f <- dir.listFiles if f.isFile && f.canRead) {
+      counter += 1
       val source = scala.io.Source.fromFile(f)(codec)
       source.getLines
         .foreach(idx.addFileLine(f.getName, _))
       source.close()
     }
+    println(s"$counter files read in directory ${dir.getName}")
     idx
   }
 
@@ -133,8 +144,8 @@ object Program {
     if (searchString == ":quit") System.exit(0)
     else {
       index.query(searchString) match {
-        case r if r.isEmpty => println("no matches found ")
-        case r              => println(r mkString "\n")
+        case r if r.isEmpty => println("no matches found")
+        case r              => println(r mkString ", ")
       }
     }
     iterate(index)
