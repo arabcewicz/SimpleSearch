@@ -34,3 +34,8 @@ Just as required in the specification ([Scala Developer Coding Exercise](https:/
 
     constraint seems to limit reasonable ranking logic - the full match does depend only on presence of words in the file.
 
+* In a real project I would implement the task in a pure functional way using `fs2` and `cats-effect`'s `IO`, but the
+
+  > External libraries are forbidden, other than test/mocking frameworks
+
+  restriction causes that I gave up the idea here (I don't think you're expecting recreating these abstractions here :) 
